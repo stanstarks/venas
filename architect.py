@@ -38,7 +38,7 @@ class Architect(object):
     else:
         self._backward_step(input_valid, target_valid)
 
-    grad_norm = nn.utils.clip_grad_norm(self.model.arch_parameters(), 10.)
+    grad_norm = nn.utils.clip_grad_norm_(self.model.arch_parameters(), 10.)
     self.optimizer.step()
     return grad_norm
 

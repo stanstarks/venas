@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from operations import InvertedResidual
 from genotypes import Genotype
 from torch.autograd import Variable
+from util.sparsemax import Sparsemax
 
 
 class Cell(nn.Module):
@@ -61,6 +62,7 @@ class Network(nn.Module):
 
     self.global_pooling = nn.AdaptiveAvgPool2d(1)
     self.classifier = nn.Linear(C_prev, num_classes)
+    self.sparsemax = Sparsemax()
     self._initialize_alphas()
 
   def _loss(self, input, target):
@@ -69,15 +71,17 @@ class Network(nn.Module):
 
   def _initialize_alphas(self):
     self._arch_parameters = []
-    for i in range(self._steps):
+    for i in range(1, self._steps):
       alphas = Variable(1e-3 * torch.rand(i + 1).cuda(), requires_grad=True)
       self._arch_parameters.append(alphas)
 
   def forward(self, input):
     x = self.stem(input)
-    weights = []
+    weights = [torch.tensor([1.], requires_grad=False).cuda()]
     for alphas in self._arch_parameters:
-      weights.append(F.softmax(alphas))
+      weight = self.sparsemax(alphas)
+      #weight = F.softmax(alphas)
+      weights.append(weight)
     for i, cell in enumerate(self.cells):
       if i % 2 == 1:
         x = cell(x)
