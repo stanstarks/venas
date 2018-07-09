@@ -5,25 +5,8 @@ class _BaseBatchProjection(ta.Function):
     """Applies a sample-wise normalizing projection over a batch."""
 
     def forward(self, x):
-
-        requires_squeeze = False
-
-
-        has_lengths = False
-
-        y_star = x.new()
-        y_star.resize_as_(x)
-        y_star.zero_()
-
-
-        if requires_squeeze:
-            y_star = y_star.squeeze(0)
-
         y_star = self.project(x)
-        if has_lengths:
-            self.save_for_backward(y_star, lengths)
-        else:
-            self.save_for_backward(y_star)
+        self.save_for_backward(y_star)
 
         return y_star
 

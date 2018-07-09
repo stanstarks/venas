@@ -95,4 +95,4 @@ class Network(nn.Module):
     return self._arch_parameters
 
   def genotype(self):
-    genotype = Genotype(skip_add=[0, 0, 0, 0, 0, 0])
+    return self._arch_parameters
