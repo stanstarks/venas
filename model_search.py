@@ -15,7 +15,7 @@ class Cell(nn.Module):
     self._blocks = nn.ModuleList()
     self._steps = steps
     for i in range(self._steps):
-      self._blocks.append(InvertedResidual(c, c, 1, t))
+      self._blocks.append(InvertedResidual(c, c, 1, t, affine=False))
 
   def forward(self, x, weights):
     states = [x]
@@ -27,7 +27,7 @@ class Cell(nn.Module):
 
 
 class Network(nn.Module):
-  def __init__(self, C, num_classes, layers, criterion):
+  def __init__(self, C, num_classes, layers, criterion, use_sparsemax=False):
     super(Network, self).__init__()
     self._layers = layers
     self._criterion = criterion
@@ -55,14 +55,16 @@ class Network(nn.Module):
       t, oup, n = setting
       self.cells.append(Cell(t, n, c))
       if i < 2:
-        self.cells.append(InvertedResidual(c, oup, 2, t))
+        self.cells.append(InvertedResidual(c, oup, 2, t, affine=False))
       c = oup
 
     C_prev = c
 
     self.global_pooling = nn.AdaptiveAvgPool2d(1)
     self.classifier = nn.Linear(C_prev, num_classes)
-    self.sparsemax = Sparsemax()
+    self.use_sparsemax = use_sparsemax
+    if use_sparsemax:
+      self.sparsemax = Sparsemax()
     self._initialize_alphas()
 
   def _loss(self, input, target):
@@ -79,8 +81,10 @@ class Network(nn.Module):
     x = self.stem(input)
     weights = [torch.tensor([1.], requires_grad=False).cuda()]
     for alphas in self._arch_parameters:
-      weight = self.sparsemax(alphas)
-      #weight = F.softmax(alphas)
+      if self.use_sparsemax:
+        weight = self.sparsemax(alphas)
+      else:
+        weight = F.softmax(alphas, dim=-1)
       weights.append(weight)
     for i, cell in enumerate(self.cells):
       if i % 2 == 1:
@@ -95,4 +99,11 @@ class Network(nn.Module):
     return self._arch_parameters
 
   def genotype(self):
-    return self._arch_parameters
+    weights = []
+    for alphas in self._arch_parameters:
+      if self.use_sparsemax:
+        weight = self.sparsemax(alphas)
+      else:
+        weight = F.softmax(alphas)
+      weights.append(weight)
+    return weights

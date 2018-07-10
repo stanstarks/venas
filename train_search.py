@@ -39,6 +39,7 @@ parser.add_argument('--seed', type=int, default=2, help='random seed')
 parser.add_argument('--grad_clip', type=float, default=5, help='gradient clipping')
 parser.add_argument('--train_portion', type=float, default=0.5, help='portion of training data')
 parser.add_argument('--unrolled', action='store_true', default=False, help='use one-step unrolled validation loss')
+parser.add_argument('--sparsemax', action='store_true', default=False, help='use sparsemax')
 parser.add_argument('--arch_learning_rate', type=float, default=3e-4, help='learning rate for arch encoding')
 parser.add_argument('--arch_weight_decay', type=float, default=1e-3, help='weight decay for arch encoding')
 args = parser.parse_args()
@@ -73,7 +74,7 @@ def main():
 
   criterion = nn.CrossEntropyLoss()
   criterion = criterion.cuda()
-  model = Network(args.init_channels, CIFAR_CLASSES, args.layers, criterion)
+  model = Network(args.init_channels, CIFAR_CLASSES, args.layers, criterion, args.sparsemax)
   model = model.cuda()
   logging.info("param size = %fMB", utils.count_parameters_in_MB(model))
 
@@ -115,10 +116,9 @@ def main():
     logging.info('epoch %d lr %e', epoch, lr)
 
     genotype = model.genotype()
-    logging.info('genotype = %s', genotype)
+    logging.info('weights = %s', genotype)
 
-    for alphas in model.arch_parameters():
-      print(F.softmax(alphas))
+    logging.info('logits = %s', model.arch_parameters())
 
     # training
     train_acc, train_obj, arch_grad_norm = train(train_queue, search_queue, model, architect, criterion, optimizer, lr)
