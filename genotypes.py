@@ -15,3 +15,5 @@ PRIMITIVES = [
 
 MOBILENET = Genotype(skip_add=[0, 0, 0, 0, 0, 0])
 SPARSEMAX = Genotype(skip_add=[0, 0, 1, 2, 3, 1])
+SPARSEMAX1 = Genotype(skip_add=[0, 0, 1, 2, 3, 4])
+SPARSEMAX2 = Genotype(skip_add=[0, 0, 0, 2, 2, 2])
